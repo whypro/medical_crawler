@@ -4,7 +4,7 @@ from scrapy.http.request import Request
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem
 
 
 class A120askSpider(CrawlSpider):
@@ -15,6 +15,7 @@ class A120askSpider(CrawlSpider):
     rules = (
         Rule(LinkExtractor(allow=(r'/jibing/\w+/$', )), callback='parse_disease', follow=True),
         Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
+        Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
     )
 
     def parse_start_url(self, response):
@@ -80,6 +81,55 @@ class A120askSpider(CrawlSpider):
         return symptom_item
 
     def parse_question(self, response):
-        pass
+        """解析【问答】页面"""
+        question_item = QuestionItem()
+        question_item['qid'] = response.url.split('/')[-1].split('.')[0]
+        question_item['title'] = response.xpath('//div[@class="b_askti"]/h1/text()').extract()[0]
+        _content = response.xpath(u'//div[@class="b_askcont"]/p[@class="crazy_new"]')
+        question_item['description'] = '\n'.join([d.strip() for d in _content.xpath('span[text()="健康咨询描述："]/parent::p/text()').extract()])
+        question_item['requirement'] = '\n'.join([r.strip() for r in _content.xpath('span[text()="需要医生帮助提供远程诊断："]/parent::p/text()').extract()])
+
+        patient = dict()
+        _patient_info = response.xpath(u'//div[@class="b_askab1"]/span')
+        _username = response.xpath('//div[@class="b_answerarea"]/span/a[contains(@href, "/user/")]/text()').extract()
+        patient['username'] = _username[0] if _username else None
+        _age = _patient_info.xpath('font[@itemprop="age"]/text()').extract()
+        patient['age'] = _age[0] if _age else None
+        _gender = _patient_info.xpath('font[@itemprop="gender"]/text()').extract()
+        patient['gender'] = _gender[0] if _gender else None
+        _location = _patient_info.xpath('font[@itemprop="location"]/text()').extract()
+        patient['location'] = _location[0] if _location else None
+        _date = _patient_info.xpath('font[@itemprop="post_time"]/text()').extract()
+        question_item['date'] = _date[0] if _date else None
+        question_item['patient'] = patient
+
+        question_item['answers'] = []
+
+        for _answer in response.xpath(u'//div[@class="b_answerli"]'):
+            answer = dict()
+            # TODO:
+            answer['content'] = '\n'.join([c.strip() for c in _answer.xpath('//div[@itemprop="content"]/div/p/text()').extract()])
+            answer['date'] = _answer.xpath('//font[@itemprop="reply_time"]/text()').extract()[0]
+            answer['doctor'] = dict()
+            ###########
+            answer['addition'] = []
+
+            for _addition in _answer.xpath('//div[@class="b_ansaddbox"]/div[@class="b_ansaddli"]'):
+                addition = dict()
+                addition['type'] = '回答' if _addition.xpath('span/@class').extract()[0] == 'b_docaddti' else '追问'
+                addition['content'] = _addition.xpath('p/text()').extract()[0]
+                addition['date'] = _addition.xpath('span/span/text()').extract()[0]
+                # print addition['content']
+                answer['addition'].append(addition)
+
+            question_item['answers'].append(answer)
+
+        # print question_item['description']
+        # print question_item['requirement']
+
+        # print question_item
+        yield question_item
+
+
 
 

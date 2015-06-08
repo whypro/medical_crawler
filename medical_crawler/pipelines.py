@@ -8,7 +8,7 @@ from PIL import Image
 import imagehash
 
 from medical_crawler.database import mongo_connect, mongo_close
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem
 
 class Pipeline(object):
 
@@ -73,6 +73,7 @@ class A120askPipeline(Pipeline):
     db_department_collection = 'department'
     db_disease_collection = 'disease'
     db_symptom_collection = 'symptom'
+    db_question_collection = 'question'
 
     def process_item(self, item, spider):
 
@@ -85,6 +86,8 @@ class A120askPipeline(Pipeline):
             self._process_disease_item(item)
         elif isinstance(item, SymptomItem):
             self._process_symptom_item(item)
+        elif isinstance(item, QuestionItem):
+            self._process_question_item(item)
 
         return item
 
@@ -125,6 +128,15 @@ class A120askPipeline(Pipeline):
             symptom['related_diseases'] = item['related_diseases']
             # print symptom
             symptom_collection.insert(symptom)
+        else:
+            pass
+
+    def _process_question_item(self, item):
+        question_collection = self.db[self.db_question_collection]
+
+        if not question_collection.find({'qid': item['qid']}).count():
+            question = dict(item)
+            question_collection.insert(question)
         else:
             pass
 

@@ -50,12 +50,27 @@ class SymptomItem(Item):
     related_symptoms = Field()  # 相关症状
 
 class QuestionItem(Item):
+    qid = Field()               # 编号
     title = Field()             # 标题
     description = Field()       # 描述
-    confusion = Field()         # 疑惑
+    requirement = Field()       # 需求
     department = Field()        # 科室
     disease = Field()           # 疾病
-    replies = Field()           # 回复
+    answers = Field()           # 回答
+    patient = Field()           # 病人
+    date = Field()              # 时间
+
+class PatientItem(Item):
+    username = Field()          # 用户名
+    age = Field()               # 年龄
+    gender = Field()            # 性别
+    location = Field()          # 地区
+
+class AnswerItem(Item):
+    doctor = Field()            # 医生
+    content = Field()           # 回答
+    addition = Field()          # 追问和回答
+    date = Field()              # 时间
 
 
 class MedicineItem(Item):

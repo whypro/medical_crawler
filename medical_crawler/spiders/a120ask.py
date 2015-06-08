@@ -4,7 +4,7 @@ from scrapy.http.request import Request
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 
-from medical_crawler.items import DepartmentItem, DiseaseItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem
 
 
 class A120askSpider(CrawlSpider):
@@ -13,7 +13,8 @@ class A120askSpider(CrawlSpider):
     start_urls = ('http://www.120ask.com/', )
 
     rules = (
-        Rule(LinkExtractor(allow=(r'/jibing/\w+/$', )), callback='parse_disease'),
+        Rule(LinkExtractor(allow=(r'/jibing/\w+/$', )), callback='parse_disease', follow=True),
+        Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
     )
 
     def parse_start_url(self, response):
@@ -67,7 +68,16 @@ class A120askSpider(CrawlSpider):
         pass
 
     def parse_symptom(self, response):
-        pass
+        """解析【症状】页面"""
+        symptom_item = SymptomItem()
+        symptom_item['name'] = response.xpath('//h3[@class="clears"]/a/b/text()').extract()[0]
+
+        _related = response.xpath('//div[@id="yw3"]/div/div')
+        symptom_item['related_diseases'] = _related.xpath('ul/li/a[contains(@href, "/jibing/")]/@title').extract()
+        # symptom_item['related_symptoms'] = _related.xpath('ul/li/a[contains(@href, "/zhengzhuang/")]/@title').extract()
+        # print symptom_item['related_diseases'], symptom_item['related_symptoms']
+        # print symptom_item
+        return symptom_item
 
     def parse_question(self, response):
         pass

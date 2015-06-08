@@ -35,7 +35,7 @@ class DiseaseItem(Item):
     related_diseases = Field()  # 相关疾病
 
 
-class SymptonItem(Item):
+class SymptomItem(Item):
     name = Field()              # 名称
     summary = Field()           # 概述
     cause = Field()             # 病因
@@ -47,6 +47,7 @@ class SymptonItem(Item):
     articles = Field()          # 文章
     questions = Field()         # 问答
     related_diseases = Field()  # 相关疾病
+    related_symptoms = Field()  # 相关症状
 
 class QuestionItem(Item):
     title = Field()             # 标题

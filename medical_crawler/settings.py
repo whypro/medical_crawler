@@ -9,6 +9,7 @@
 #
 
 BOT_NAME = 'medical_crawler'
+LOG_LEVEL = 'ERROR'
 
 SPIDER_MODULES = ['medical_crawler.spiders']
 NEWSPIDER_MODULE = 'medical_crawler.spiders'
@@ -27,6 +28,10 @@ DEFAULT_REQUEST_HEADERS = {
     'Cache-Control': 'max-age=0',
     'Connection': 'keep-alive',
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.103 Safari/537.36'
+}
+
+ITEM_PIPELINES = {
+    'medical_crawler.pipelines.A120askPipeline': 300,
 }
 
 DOWNLOAD_DELAY = 1

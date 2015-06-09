@@ -85,9 +85,10 @@ class A120askSpider(CrawlSpider):
         question_item = QuestionItem()
         question_item['qid'] = response.url.split('/')[-1].split('.')[0]
         question_item['title'] = response.xpath('//div[@class="b_askti"]/h1/text()').extract()[0]
+        question_item['department'] = response.xpath('//div[@class="b_route t10"]/a[@itemprop="link"]/span/text()').extract()[0]
         _content = response.xpath(u'//div[@class="b_askcont"]/p[@class="crazy_new"]')
-        question_item['description'] = '\n'.join([d.strip() for d in _content.xpath('span[text()="健康咨询描述："]/parent::p/text()').extract()])
-        question_item['requirement'] = '\n'.join([r.strip() for r in _content.xpath('span[text()="需要医生帮助提供远程诊断："]/parent::p/text()').extract()])
+        question_item['description'] = '\n'.join([d.strip() for d in _content.xpath('span[text()="健康咨询描述："]/parent::p/text()').extract()]).strip()
+        question_item['requirement'] = '\n'.join([r.strip() for r in _content.xpath('span[text()="需要医生帮助提供远程诊断："]/parent::p/text()').extract()]).strip()
 
         patient = dict()
         _patient_info = response.xpath(u'//div[@class="b_askab1"]/span')
@@ -106,12 +107,17 @@ class A120askSpider(CrawlSpider):
         question_item['answers'] = []
 
         for _answer in response.xpath(u'//div[@class="b_answerli"]'):
+            _answer_content = _answer.xpath('div[@class="b_answercont clears"]/div[@class="b_anscontc"]')
             answer = dict()
-            # TODO:
-            answer['content'] = '\n'.join([c.strip() for c in _answer.xpath('//div[@itemprop="content"]/div/p/text()').extract()])
-            answer['date'] = _answer.xpath('//font[@itemprop="reply_time"]/text()').extract()[0]
-            answer['doctor'] = dict()
-            ###########
+            answer['content'] = '\n'.join([c.strip() for c in _answer_content.xpath('div[@itemprop="content"]/div/p/text()').extract()]).strip()
+            _date = _answer_content.xpath('span/font[@itemprop="reply_time"]/text()').extract()
+            answer['date'] = _date[0] if _date else None
+            _answer_title = _answer.xpath('div[@class="b_answertop clears"]/div[@class="b_answertl"]')
+            doctor = dict()
+            doctor['name'] = _answer_title.xpath('span/a/font/text()').extract()[0]
+            doctor['username'] = _answer_title.xpath('span/a/@href').extract()[0].split('/')[-1]
+            answer['doctor'] = doctor
+
             answer['addition'] = []
 
             for _addition in _answer.xpath('//div[@class="b_ansaddbox"]/div[@class="b_ansaddli"]'):

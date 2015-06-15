@@ -15,7 +15,8 @@ class DepartmentItem(Item):
 
 
 class DiseaseItem(Item):
-    names = Field()              # 名称
+    url = Field()               # URL
+    names = Field()             # 名称
     summary = Field()           # 概述
     cause = Field()             # 病因
     symptom = Field()           # 症状
@@ -36,6 +37,7 @@ class DiseaseItem(Item):
 
 
 class SymptomItem(Item):
+    url = Field()               # URL
     name = Field()              # 名称
     summary = Field()           # 概述
     cause = Field()             # 病因
@@ -50,11 +52,12 @@ class SymptomItem(Item):
     related_symptoms = Field()  # 相关症状
 
 class QuestionItem(Item):
+    url = Field()               # URL
     qid = Field()               # 编号
     title = Field()             # 标题
     description = Field()       # 描述
     requirement = Field()       # 需求
-    department = Field()        # 科室
+    tags = Field()              # 标签
     disease = Field()           # 疾病
     answers = Field()           # 回答
     patient = Field()           # 病人

@@ -4,9 +4,6 @@ import hashlib
 import requests
 import os
 
-from PIL import Image
-import imagehash
-
 from medical_crawler.database import mongo_connect, mongo_close
 from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem
 
@@ -61,15 +58,10 @@ class Pipeline(object):
     def gen_path(self, **kwargs):
         raise NotImplementedError
 
-    def gen_image_hash(self, path):
-        image = Image.open(path)
-        dhash = imagehash.dhash(image)
-        return str(dhash)
-
 
 class A120askPipeline(Pipeline):
     db_name = '120ask'
-    # download_directory = '/mnt/my_book/一些资料/【爬虫】/dbmeizi/photos/pics'
+    # download_directory = '/mnt/my_book/'
     db_department_collection = 'department'
     db_disease_collection = 'disease'
     db_symptom_collection = 'symptom'
@@ -138,7 +130,7 @@ class A120askPipeline(Pipeline):
             question = dict(item)
             question_collection.insert(question)
         else:
-            pass
+            print 'skip'
 
 
 

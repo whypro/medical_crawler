@@ -44,6 +44,7 @@ class A120askSpider(CrawlSpider):
     def parse_disease(self, response):
         """解析【疾病】页面"""
         disease_item = DiseaseItem()
+        disease_item['url'] = response.url
 
         _name = response.xpath('//span[@class="ti"]')
         disease_item['names'] = _name.xpath('h1/a/text()').extract()
@@ -71,6 +72,7 @@ class A120askSpider(CrawlSpider):
     def parse_symptom(self, response):
         """解析【症状】页面"""
         symptom_item = SymptomItem()
+        symptom_item['url'] = response.url
         symptom_item['name'] = response.xpath('//h3[@class="clears"]/a/b/text()').extract()[0]
 
         _related = response.xpath('//div[@id="yw3"]/div/div')
@@ -83,9 +85,11 @@ class A120askSpider(CrawlSpider):
     def parse_question(self, response):
         """解析【问答】页面"""
         question_item = QuestionItem()
+        question_item['url'] = response.url
         question_item['qid'] = response.url.split('/')[-1].split('.')[0]
         question_item['title'] = response.xpath('//div[@class="b_askti"]/h1/text()').extract()[0]
-        question_item['department'] = response.xpath('//div[@class="b_route t10"]/a[@itemprop="link"]/span/text()').extract()[0]
+        question_item['tags'] = response.xpath('//div[@class="b_route t10"]/a/text()').extract()[1:]
+        question_item['tags'] += response.xpath('//div[@class="b_route t10"]/a/span/text()').extract()
         _content = response.xpath(u'//div[@class="b_askcont"]/p[@class="crazy_new"]')
         question_item['description'] = '\n'.join([d.strip() for d in _content.xpath('span[text()="健康咨询描述："]/parent::p/text()').extract()]).strip()
         question_item['requirement'] = '\n'.join([r.strip() for r in _content.xpath('span[text()="需要医生帮助提供远程诊断："]/parent::p/text()').extract()]).strip()
@@ -115,7 +119,8 @@ class A120askSpider(CrawlSpider):
             _answer_title = _answer.xpath('div[@class="b_answertop clears"]/div[@class="b_answertl"]')
             doctor = dict()
             doctor['name'] = _answer_title.xpath('span/a/font/text()').extract()[0]
-            doctor['username'] = _answer_title.xpath('span/a/@href').extract()[0].split('/')[-1]
+            _username = _answer_title.xpath('span/a/@href').extract()
+            doctor['username'] = _username[0].split('/')[-1] if _username else None
             answer['doctor'] = doctor
 
             answer['addition'] = []

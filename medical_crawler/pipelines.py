@@ -5,7 +5,7 @@ import requests
 import os
 
 from medical_crawler.database import mongo_connect, mongo_close
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem
 
 class Pipeline(object):
 
@@ -80,6 +80,10 @@ class A120askPipeline(Pipeline):
             self._process_symptom_item(item)
         elif isinstance(item, QuestionItem):
             self._process_question_item(item)
+        elif isinstance(item, DiseaseDetailItem):
+            self._process_disease_detail_item(item)
+        elif isinstance(item, SymptomDetailItem):
+            self._process_symptom_detail_item(item)
 
         return item
 
@@ -101,7 +105,7 @@ class A120askPipeline(Pipeline):
     def _process_disease_item(self, item):
         disease_collection = self.db[self.db_disease_collection]
 
-        if not disease_collection.find({'names': item['names'][0]}).count():
+        if not disease_collection.find({'name': item['name']}).count():
             disease = dict(item)
             # disease['names'] = item['names']
             # disease['related_symptoms'] = item['related_symptoms']
@@ -132,5 +136,14 @@ class A120askPipeline(Pipeline):
         else:
             print 'skip'
 
+    def _process_disease_detail_item(self, item):
+        disease_collection = self.db[self.db_disease_collection]
+        result = disease_collection.update_one({'name': item['disease_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
+        print 'disease_detail', result.matched_count
+
+    def _process_symptom_detail_item(self, item):
+        symptom_collection = self.db[self.db_symptom_collection]
+        result = symptom_collection.update_one({'name': item['symptom_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
+        print 'symptom_detail', result.matched_count
 
 

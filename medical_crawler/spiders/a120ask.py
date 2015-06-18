@@ -88,7 +88,7 @@ class A120askSpider(CrawlSpider):
         if _other_name:
             begin = _other_name[0].find('：') + 1
             end = _other_name[0].rfind('）')
-            disease_item['aliases'] = _other_name[0][begin:end].split('，')
+            disease_item['aliases'] = _other_name[0][begin:end].split('，,')
 
         _related = response.xpath('//div[@id="yw4"]/div/div/div')
         disease_item['related_diseases'] = _related.xpath('ul/li/a[contains(@href, "/jibing/")]/@title').extract()

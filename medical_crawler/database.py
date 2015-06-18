@@ -4,7 +4,7 @@ from pymongo import MongoClient
 
 # MongoDB settings
 MONGODB = {
-    'Host': '192.168.1.2',
+    'Host': 'localhost',
     'Port': 27017,
     'Username': '',
     'Password': '',

@@ -1,11 +1,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from urlparse import urljoin
+from HTMLParser import HTMLParser
 from scrapy.http.request import Request
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 
 from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem
 
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = []
+
+    def handle_data(self, d):
+        self.fed.append(d)
+
+    def get_data(self):
+        return ''.join(self.fed)
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
 
 class A120askSpider(CrawlSpider):
     name = "120ask"
@@ -14,9 +32,24 @@ class A120askSpider(CrawlSpider):
 
     rules = (
         Rule(LinkExtractor(allow=(r'/jibing/\w+/$', )), callback='parse_disease', follow=True),
-        Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
-        Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
+        # Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
+        # Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
     )
+
+    _disease_url_map = {
+        'bingyin': 'cause',
+        'zhengzhuang': 'symptom',
+        'jiancha': 'examination',
+        'jianbie': 'identification',
+        'bingfa': 'complication',
+        'yufang': 'prevention',
+        'zhiliao': 'treat',
+        'yinshi': 'diet',
+    }
+
+    def __init__(self):
+        super(A120askSpider, self).__init__()
+        self._key_gen = None
 
     def parse_start_url(self, response):
         """解析【首页】"""
@@ -59,11 +92,32 @@ class A120askSpider(CrawlSpider):
         disease_item['related_symptoms'] = _related.xpath('ul/li/a[contains(@href, "/zhengzhuang/")]/@title').extract()
         # print disease_item['related_diseases'], disease_item['related_symptoms']
         # print disease_item
-        return disease_item
+        self._key_gen = self._gen_disease_url()
+        request = Request(url=urljoin(response.url, self._key_gen.next()+'/'), callback=self._parse_disease_detail)
+        request.meta['disease_item'] = disease_item
+        yield request
+        # yield disease_item
 
-    def _parse_disease_cause(self, response):
+    def _gen_disease_url(self):
+        for key in self._disease_url_map.keys():
+            yield key
+
+    def _parse_disease_detail(self, response):
         # http://tag.120ask.com/jibing/bidouyan/bingyin/
-        pass
+        print response.url
+        disease_item = response.meta['disease_item']
+        key = response.url.split('/')[-2]
+        new_key = self._disease_url_map[key]
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract()))
+        print content
+        disease_item[new_key] = content
+        try:
+            request = Request(url=urljoin(response.url, '../'+self._key_gen.next()+'/'), callback=self._parse_disease_detail)
+            request.meta['disease_item'] = disease_item
+            yield request
+        except StopIteration:
+            print disease_item
+            yield disease_item
 
     def _parse_disease_summary(self, response):
         # http://tag.120ask.com/jibing/bidouyan/gaishu/

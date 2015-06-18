@@ -32,11 +32,11 @@ class A120askSpider(CrawlSpider):
 
     rules = (
         Rule(LinkExtractor(allow=(r'/jibing/\w+/$', )), callback='parse_disease', follow=True),
-        # Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
+        Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
         # Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
     )
 
-    _disease_url_map = {
+    _detail_url_map = {
         'bingyin': 'cause',
         'zhengzhuang': 'symptom',
         'jiancha': 'examination',
@@ -45,11 +45,13 @@ class A120askSpider(CrawlSpider):
         'yufang': 'prevention',
         'zhiliao': 'treat',
         'yinshi': 'diet',
+        'huanjie': 'relief',
     }
 
     def __init__(self):
         super(A120askSpider, self).__init__()
-        self._key_gen = None
+        self._disease_key_gen = None
+        self._symptom_key_gen = None
 
     def parse_start_url(self, response):
         """解析【首页】"""
@@ -92,14 +94,23 @@ class A120askSpider(CrawlSpider):
         disease_item['related_symptoms'] = _related.xpath('ul/li/a[contains(@href, "/zhengzhuang/")]/@title').extract()
         # print disease_item['related_diseases'], disease_item['related_symptoms']
         # print disease_item
-        self._key_gen = self._gen_disease_url()
-        request = Request(url=urljoin(response.url, self._key_gen.next()+'/'), callback=self._parse_disease_detail)
-        request.meta['disease_item'] = disease_item
-        yield request
+
+        keys = [u.split('/')[-2] for u in response.xpath('//div[@class="p_topbox"]/p/span/a/@href').extract()[1:]]
+        for k in keys:
+            new_key = self._detail_url_map.get(k)
+            if new_key:
+                request = Request(url=urljoin(response.url, new_key+'/'), callback=self._parse_disease_detail)
+                request.meta['disease_item'] = disease_item
+                yield request
+
         # yield disease_item
 
     def _gen_disease_url(self):
         for key in self._disease_url_map.keys():
+            yield key
+
+    def _gen_symptom_url(self):
+        for key in self._symptom_url_map.keys():
             yield key
 
     def _parse_disease_detail(self, response):
@@ -112,16 +123,30 @@ class A120askSpider(CrawlSpider):
         # print content
         disease_item[new_key] = content
         try:
-            request = Request(url=urljoin(response.url, '../'+self._key_gen.next()+'/'), callback=self._parse_disease_detail)
+            request = Request(url=urljoin(response.url, '../'+self._disease_key_gen.next()+'/'), dont_filter=True, callback=self._parse_disease_detail)
             request.meta['disease_item'] = disease_item
             yield request
-        except StopIteration:
-            print disease_item
+        except StopIteration as e:
+            print e
+            # print disease_item
             yield disease_item
 
-    def _parse_disease_summary(self, response):
-        # http://tag.120ask.com/jibing/bidouyan/gaishu/
-        pass
+    def _parse_symptom_detail(self, response):
+        # http://tag.120ask.com/jibing/bidouyan/bingyin/
+        print response.url
+        symptom_item = response.meta['symptom_item']
+        key = response.url.split('/')[-2]
+        new_key = self._symptom_url_map[key]
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract())).strip()
+        # print content
+        symptom_item[new_key] = content
+        try:
+            request = Request(url=urljoin(response.url, '../'+self._symptom_key_gen.next()+'/'), callback=self._parse_symptom_detail)
+            request.meta['symptom_item'] = symptom_item
+            yield request
+        except StopIteration:
+            # print symptom_item
+            yield symptom_item
 
     def parse_symptom(self, response):
         """解析【症状】页面"""
@@ -134,7 +159,11 @@ class A120askSpider(CrawlSpider):
         # symptom_item['related_symptoms'] = _related.xpath('ul/li/a[contains(@href, "/zhengzhuang/")]/@title').extract()
         # print symptom_item['related_diseases'], symptom_item['related_symptoms']
         # print symptom_item
-        return symptom_item
+        self._symptom_key_gen = self._gen_symptom_url()
+        request = Request(url=urljoin(response.url, self._symptom_key_gen.next()+'/'), callback=self._parse_symptom_detail)
+        request.meta['symptom_item'] = symptom_item
+        yield request
+        # return symptom_item
 
     def parse_question(self, response):
         """解析【问答】页面"""

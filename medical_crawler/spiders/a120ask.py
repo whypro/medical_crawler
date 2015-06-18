@@ -6,7 +6,7 @@ from scrapy.http.request import Request
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem
 
 
 class MLStripper(HTMLParser):
@@ -37,6 +37,7 @@ class A120askSpider(CrawlSpider):
     )
 
     _detail_url_map = {
+        'gaishu': 'summary',
         'bingyin': 'cause',
         'zhengzhuang': 'symptom',
         'jiancha': 'examination',
@@ -82,71 +83,42 @@ class A120askSpider(CrawlSpider):
         disease_item['url'] = response.url
 
         _name = response.xpath('//span[@class="ti"]')
-        disease_item['names'] = _name.xpath('h1/a/text()').extract()
+        disease_item['name'] = _name.xpath('h1/a/text()').extract()[0]
         _other_name = _name.xpath('var/text()').extract()
         if _other_name:
             begin = _other_name[0].find('：') + 1
             end = _other_name[0].rfind('）')
-            disease_item['names'] += _other_name[0][begin:end].split('，')
+            disease_item['aliases'] = _other_name[0][begin:end].split('，')
 
         _related = response.xpath('//div[@id="yw4"]/div/div/div')
         disease_item['related_diseases'] = _related.xpath('ul/li/a[contains(@href, "/jibing/")]/@title').extract()
         disease_item['related_symptoms'] = _related.xpath('ul/li/a[contains(@href, "/zhengzhuang/")]/@title').extract()
         # print disease_item['related_diseases'], disease_item['related_symptoms']
         # print disease_item
+        yield disease_item
 
-        keys = [u.split('/')[-2] for u in response.xpath('//div[@class="p_topbox"]/p/span/a/@href').extract()[1:]]
-        for k in keys:
-            new_key = self._detail_url_map.get(k)
-            if new_key:
-                request = Request(url=urljoin(response.url, new_key+'/'), callback=self._parse_disease_detail)
-                request.meta['disease_item'] = disease_item
-                yield request
-
-        # yield disease_item
-
-    def _gen_disease_url(self):
-        for key in self._disease_url_map.keys():
-            yield key
-
-    def _gen_symptom_url(self):
-        for key in self._symptom_url_map.keys():
-            yield key
+        # Go on parsing details
+        detail_urls = response.xpath('//div[@class="p_lbox1_ab"]/a/@href').extract()
+        detail_urls += response.xpath('//ul[@class="p_sibox2ul clears"]/li/a/@href').extract()
+        # print detail_urls
+        for url in detail_urls:
+            request = Request(url=url, callback=self._parse_disease_detail)
+            request.meta['disease_item'] = disease_item
+            yield request
 
     def _parse_disease_detail(self, response):
         # http://tag.120ask.com/jibing/bidouyan/bingyin/
         print response.url
         disease_item = response.meta['disease_item']
         key = response.url.split('/')[-2]
-        new_key = self._disease_url_map[key]
+        field = self._detail_url_map[key]
         content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract())).strip()
         # print content
-        disease_item[new_key] = content
-        try:
-            request = Request(url=urljoin(response.url, '../'+self._disease_key_gen.next()+'/'), dont_filter=True, callback=self._parse_disease_detail)
-            request.meta['disease_item'] = disease_item
-            yield request
-        except StopIteration as e:
-            print e
-            # print disease_item
-            yield disease_item
-
-    def _parse_symptom_detail(self, response):
-        # http://tag.120ask.com/jibing/bidouyan/bingyin/
-        print response.url
-        symptom_item = response.meta['symptom_item']
-        key = response.url.split('/')[-2]
-        new_key = self._symptom_url_map[key]
-        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract())).strip()
-        # print content
-        symptom_item[new_key] = content
-        try:
-            request = Request(url=urljoin(response.url, '../'+self._symptom_key_gen.next()+'/'), callback=self._parse_symptom_detail)
-            request.meta['symptom_item'] = symptom_item
-            yield request
-        except StopIteration:
-            # print symptom_item
-            yield symptom_item
+        disease_detail_item = DiseaseDetailItem()
+        disease_detail_item['disease_name'] = disease_item['name']
+        disease_detail_item['field'] = field
+        disease_detail_item['content'] = content
+        return disease_detail_item
 
     def parse_symptom(self, response):
         """解析【症状】页面"""
@@ -159,11 +131,30 @@ class A120askSpider(CrawlSpider):
         # symptom_item['related_symptoms'] = _related.xpath('ul/li/a[contains(@href, "/zhengzhuang/")]/@title').extract()
         # print symptom_item['related_diseases'], symptom_item['related_symptoms']
         # print symptom_item
-        self._symptom_key_gen = self._gen_symptom_url()
-        request = Request(url=urljoin(response.url, self._symptom_key_gen.next()+'/'), callback=self._parse_symptom_detail)
-        request.meta['symptom_item'] = symptom_item
-        yield request
-        # return symptom_item
+        yield symptom_item
+
+        # Go on parsing details
+        detail_urls = response.xpath('//dl[@class="p_sibox1dl clears"]/dt/a/@href').extract()
+        detail_urls += response.xpath('//ul[@class="p_sibox2ul clears"]/li/a[1]/@href').extract()
+        # print detail_urls
+        for url in detail_urls:
+            request = Request(url=url, callback=self._parse_symptom_detail)
+            request.meta['symptom_item'] = symptom_item
+            yield request
+
+    def _parse_symptom_detail(self, response):
+        # http://tag.120ask.com/jibing/bidouyan/bingyin/
+        print response.url
+        symptom_item = response.meta['symptom_item']
+        key = response.url.split('/')[-2]
+        field = self._detail_url_map[key]
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract())).strip()
+        # print content
+        symptom_detail_item = SymptomDetailItem()
+        symptom_detail_item['symptom_name'] = symptom_item['name']
+        symptom_detail_item['field'] = field
+        symptom_detail_item['content'] = content
+        return symptom_detail_item
 
     def parse_question(self, response):
         """解析【问答】页面"""
@@ -179,16 +170,27 @@ class A120askSpider(CrawlSpider):
 
         patient = dict()
         _patient_info = response.xpath(u'//div[@class="b_askab1"]/span')
+
         _username = response.xpath('//div[@class="b_answerarea"]/span/a[contains(@href, "/user/")]/text()').extract()
-        patient['username'] = _username[0] if _username else None
+        if _username:
+            patient['username'] = _username[0]
+
         _age = _patient_info.xpath('font[@itemprop="age"]/text()').extract()
-        patient['age'] = _age[0] if _age else None
+        if _age:
+            patient['age'] = _age[0]
+
         _gender = _patient_info.xpath('font[@itemprop="gender"]/text()').extract()
-        patient['gender'] = _gender[0] if _gender else None
+        if _gender:
+            patient['gender'] = _gender[0]
+
         _location = _patient_info.xpath('font[@itemprop="location"]/text()').extract()
-        patient['location'] = _location[0] if _location else None
+        if _location:
+            patient['location'] = _location[0]
+
         _date = _patient_info.xpath('font[@itemprop="post_time"]/text()').extract()
-        question_item['date'] = _date[0] if _date else None
+        if _date:
+            question_item['date'] = _date[0]
+
         question_item['patient'] = patient
 
         question_item['answers'] = []
@@ -197,13 +199,19 @@ class A120askSpider(CrawlSpider):
             _answer_content = _answer.xpath('div[@class="b_answercont clears"]/div[@class="b_anscontc"]')
             answer = dict()
             answer['content'] = '\n'.join([c.strip() for c in _answer_content.xpath('div[@itemprop="content"]/div/p/text()').extract()]).strip()
+
             _date = _answer_content.xpath('span/font[@itemprop="reply_time"]/text()').extract()
-            answer['date'] = _date[0] if _date else None
+            if _date:
+                answer['date'] = _date[0]
+
             _answer_title = _answer.xpath('div[@class="b_answertop clears"]/div[@class="b_answertl"]')
             doctor = dict()
             doctor['name'] = _answer_title.xpath('span/a/font/text()').extract()[0]
+
             _username = _answer_title.xpath('span/a/@href').extract()
-            doctor['username'] = _username[0].split('/')[-1] if _username else None
+            if _username:
+                doctor['username'] = _username[0].split('/')[-1]
+
             answer['doctor'] = doctor
 
             answer['addition'] = []

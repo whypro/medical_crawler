@@ -19,7 +19,7 @@ class DiseaseDetailItem(Item):
     content = Field()
 
 class SymptomDetailItem(Item):
-    disease_name = Field()
+    symptom_name = Field()
     field = Field()
     content = Field()
 

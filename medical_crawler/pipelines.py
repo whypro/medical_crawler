@@ -102,10 +102,10 @@ class A120askPipeline(Pipeline):
         disease_collection = self.db[self.db_disease_collection]
 
         if not disease_collection.find({'names': item['names'][0]}).count():
-            disease = dict()
-            disease['names'] = item['names']
-            disease['related_symptoms'] = item['related_symptoms']
-            disease['related_diseases'] = item['related_diseases']
+            disease = dict(item)
+            # disease['names'] = item['names']
+            # disease['related_symptoms'] = item['related_symptoms']
+            # disease['related_diseases'] = item['related_diseases']
             # print disease
             disease_collection.insert(disease)
         else:
@@ -115,9 +115,9 @@ class A120askPipeline(Pipeline):
         symptom_collection = self.db[self.db_symptom_collection]
 
         if not symptom_collection.find({'name': item['name']}).count():
-            symptom = dict()
-            symptom['name'] = item['name']
-            symptom['related_diseases'] = item['related_diseases']
+            symptom = dict(item)
+            # symptom['name'] = item['name']
+            # symptom['related_diseases'] = item['related_diseases']
             # print symptom
             symptom_collection.insert(symptom)
         else:

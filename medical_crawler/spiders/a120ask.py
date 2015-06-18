@@ -108,8 +108,8 @@ class A120askSpider(CrawlSpider):
         disease_item = response.meta['disease_item']
         key = response.url.split('/')[-2]
         new_key = self._disease_url_map[key]
-        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract()))
-        print content
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract())).strip()
+        # print content
         disease_item[new_key] = content
         try:
             request = Request(url=urljoin(response.url, '../'+self._key_gen.next()+'/'), callback=self._parse_disease_detail)

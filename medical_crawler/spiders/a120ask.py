@@ -206,7 +206,8 @@ class A120askSpider(CrawlSpider):
 
             _answer_title = _answer.xpath('div[@class="b_answertop clears"]/div[@class="b_answertl"]')
             doctor = dict()
-            doctor['name'] = _answer_title.xpath('span/a/font/text()').extract()[0]
+            # print _answer_title.xpath('span//font[@itemprop="name"]/text()').extract()
+            doctor['name'] = _answer_title.xpath('span//font[@itemprop="name"]/text()').extract()[0]
 
             _username = _answer_title.xpath('span/a/@href').extract()
             if _username:

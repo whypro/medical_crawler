@@ -134,7 +134,8 @@ class A120askPipeline(Pipeline):
             question = dict(item)
             question_collection.insert(question)
         else:
-            print 'skip'
+            result = question_collection.update_one({'qid': item['qid']}, {'$set': {'answers': item['answers']}})
+            print 'question', result.matched_count
 
     def _process_disease_detail_item(self, item):
         disease_collection = self.db[self.db_disease_collection]

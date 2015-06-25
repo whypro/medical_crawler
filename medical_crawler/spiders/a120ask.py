@@ -196,7 +196,7 @@ class A120askSpider(CrawlSpider):
         question_item['answers'] = []
 
         for _answer in response.xpath(u'//div[@class="b_answerli"]'):
-            _answer_content = _answer.xpath('div[@class="b_answercont clears"]/div[@class="b_anscontc"]')
+            _answer_content = _answer.xpath('div/div[@class="b_anscontc"]')
             answer = dict()
             answer['content'] = '\n'.join([c.strip() for c in _answer_content.xpath('div[@itemprop="content"]/div/p/text()').extract()]).strip()
 

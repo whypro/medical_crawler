@@ -5,7 +5,7 @@ import requests
 import os
 
 from medical_crawler.database import mongo_connect, mongo_close
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem
 
 class Pipeline(object):
 
@@ -84,6 +84,10 @@ class A120askPipeline(Pipeline):
             self._process_disease_detail_item(item)
         elif isinstance(item, SymptomDetailItem):
             self._process_symptom_detail_item(item)
+        elif isinstance(item, DiseaseQuestionItem):
+            self._process_disease_quesiton_item(item)
+        elif isinstance(item, SymptomQuestionItem):
+            self._process_symptom_quesiton_item(item)
 
         return item
 
@@ -135,16 +139,32 @@ class A120askPipeline(Pipeline):
             question_collection.insert(question)
         else:
             result = question_collection.update_one({'qid': item['qid']}, {'$set': {'answers': item['answers']}})
-            print 'question', result.matched_count
+            # print 'question', result.matched_count
 
     def _process_disease_detail_item(self, item):
         disease_collection = self.db[self.db_disease_collection]
         result = disease_collection.update_one({'name': item['disease_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
-        print 'disease_detail', result.matched_count
+        # print 'disease_detail', result.matched_count
 
     def _process_symptom_detail_item(self, item):
         symptom_collection = self.db[self.db_symptom_collection]
         result = symptom_collection.update_one({'name': item['symptom_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
-        print 'symptom_detail', result.matched_count
+        # print 'symptom_detail', result.matched_count
+
+    def _process_disease_quesiton_item(self, item):
+        question_collection = self.db[self.db_question_collection]
+        for qid in item['qids']:
+            # print qid, item['symptom_name']
+            question_collection.update_one({'qid': qid}, {'$addToSet': {'related_diseases': item['disease_name']}})
+
+    def _process_symptom_quesiton_item(self, item):
+        question_collection = self.db[self.db_question_collection]
+        for qid in item['qids']:
+            # print qid, item['symptom_name']
+            question_collection.update_one({'qid': qid}, {'$addToSet': {'related_symptoms': item['symptom_name']}})
+
+
+
+
 
 

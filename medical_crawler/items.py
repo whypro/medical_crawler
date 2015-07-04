@@ -23,6 +23,14 @@ class SymptomDetailItem(Item):
     field = Field()
     content = Field()
 
+class DiseaseQuestionItem(Item):
+    disease_name = Field()
+    qids = Field()
+
+class SymptomQuestionItem(Item):
+    symptom_name = Field()
+    qids = Field()
+
 class DiseaseItem(Item):
     url = Field()               # URL
     name = Field()              # 名称
@@ -70,7 +78,8 @@ class QuestionItem(Item):
     description = Field()       # 描述
     requirement = Field()       # 需求
     tags = Field()              # 标签
-    disease = Field()           # 疾病
+    related_diseases = Field()  # 疾病
+    related_symptoms = Field()  # 症状
     answers = Field()           # 回答
     patient = Field()           # 病人
     date = Field()              # 时间

@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import re
 from urlparse import urljoin
 from HTMLParser import HTMLParser
 from scrapy.http.request import Request
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, SymptomQuestionItem
 
 
 class MLStripper(HTMLParser):
@@ -88,7 +89,7 @@ class A120askSpider(CrawlSpider):
         if _other_name:
             begin = _other_name[0].find('：') + 1
             end = _other_name[0].rfind('）')
-            disease_item['aliases'] = _other_name[0][begin:end].split('，,')
+            disease_item['aliases'] = re.split('，|,', _other_name[0][begin:end])
 
         _related = response.xpath('//div[@id="yw4"]/div/div/div')
         disease_item['related_diseases'] = _related.xpath('ul/li/a[contains(@href, "/jibing/")]/@title').extract()
@@ -96,6 +97,12 @@ class A120askSpider(CrawlSpider):
         # print disease_item['related_diseases'], disease_item['related_symptoms']
         # print disease_item
         yield disease_item
+
+        # Go on parsing questions
+        question_url = response.xpath('//div[@class="p_topbox"]/p/span/a[contains(@href, "/list/")]/@href').extract()[0]
+        request = Request(url=question_url, callback=self._parse_disease_question)
+        request.meta['disease_item'] = disease_item
+        yield request
 
         # Go on parsing details
         detail_urls = response.xpath('//div[@class="p_lbox1_ab"]/a/@href').extract()
@@ -106,9 +113,34 @@ class A120askSpider(CrawlSpider):
             request.meta['disease_item'] = disease_item
             yield request
 
+    def _parse_disease_question(self, response):
+        disease_question_item = response.meta.get('disease_questions')
+        if not disease_question_item:
+            disease_question_item = DiseaseQuestionItem()
+            disease_question_item['disease_name'] = response.meta['disease_item']['name']
+            disease_question_item['qids'] = []
+
+        # parse
+        urls = response.xpath('//div[@class="p_list_li"]/div[@class="p_list_cent"]/div[@class="p_list_centt"]/dl/dt/a/@href').extract()
+        disease_question_item['qids'] += [u.split('/')[-1].split('.')[0] for u in urls]
+
+        # last_url = response.xpath('//div[@class="portldet-content"]/a/@href').extract()[-1]
+        next_url = response.xpath('//div[@class="portlet-content"]/a[text()="下一页 >"]/@href').extract()
+        if not next_url:
+             # 所有页都处理完了
+            print disease_question_item
+            yield disease_question_item
+        else:
+            url = next_url[0]
+            # print url
+            # print disease_question_item['qids']
+            request = Request(url, callback=self._parse_disease_question)
+            request.meta['disease_questions'] = disease_question_item
+            yield request
+
     def _parse_disease_detail(self, response):
         # http://tag.120ask.com/jibing/bidouyan/bingyin/
-        print response.url
+        # print response.url
         disease_item = response.meta['disease_item']
         key = response.url.split('/')[-2]
         field = self._detail_url_map[key]
@@ -133,6 +165,12 @@ class A120askSpider(CrawlSpider):
         # print symptom_item
         yield symptom_item
 
+        # Go on parsing questions
+        question_url = response.xpath('//div[@class="w_headnav_div"]/a[contains(@href, "/list/")]/@href').extract()[0]
+        request = Request(url=question_url, callback=self._parse_symptom_question)
+        request.meta['symptom_item'] = symptom_item
+        yield request
+
         # Go on parsing details
         detail_urls = response.xpath('//dl[@class="p_sibox1dl clears"]/dt/a/@href').extract()
         detail_urls += response.xpath('//ul[@class="p_sibox2ul clears"]/li/a[1]/@href').extract()
@@ -141,6 +179,32 @@ class A120askSpider(CrawlSpider):
             request = Request(url=url, callback=self._parse_symptom_detail)
             request.meta['symptom_item'] = symptom_item
             yield request
+
+    def _parse_symptom_question(self, response):
+        symptom_question_item = response.meta.get('symptom_questions')
+        if not symptom_question_item:
+            symptom_question_item = SymptomQuestionItem()
+            symptom_question_item['symptom_name'] = response.meta['symptom_item']['name']
+            symptom_question_item['qids'] = []
+
+        # parse
+        urls = response.xpath('//div[@class="p_list_li"]/div[@class="p_list_cent"]/div[@class="p_list_centt"]/dl/dt/a/@href').extract()
+        symptom_question_item['qids'] += [u.split('/')[-1].split('.')[0] for u in urls]
+
+        # last_url = response.xpath('//div[@class="portldet-content"]/a/@href').extract()[-1]
+        next_url = response.xpath('//div[@class="portlet-content"]/a[text()="下一页 >"]/@href').extract()
+        if not next_url:
+             # 所有页都处理完了
+            print symptom_question_item
+            yield symptom_question_item
+        else:
+            url = next_url[0]
+            # print url
+            # print symptom_question_item['qids']
+            request = Request(url, callback=self._parse_symptom_question)
+            request.meta['symptom_questions'] = symptom_question_item
+            yield request
+
 
     def _parse_symptom_detail(self, response):
         # http://tag.120ask.com/jibing/bidouyan/bingyin/

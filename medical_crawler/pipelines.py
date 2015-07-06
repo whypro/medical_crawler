@@ -94,7 +94,7 @@ class A120askPipeline(Pipeline):
     def _process_department_item(self, item):
         department_collection = self.db[self.db_department_collection]
 
-        if not department_collection.find({'name': item['name']}).count():
+        if not department_collection.find_one({'name': item['name']}):
             department = dict()
             department['name'] = item['name']
             if item['parent']:
@@ -109,7 +109,7 @@ class A120askPipeline(Pipeline):
     def _process_disease_item(self, item):
         disease_collection = self.db[self.db_disease_collection]
 
-        if not disease_collection.find({'name': item['name']}).count():
+        if not disease_collection.find_one({'name': item['name']}):
             disease = dict(item)
             # disease['names'] = item['names']
             # disease['related_symptoms'] = item['related_symptoms']
@@ -122,7 +122,7 @@ class A120askPipeline(Pipeline):
     def _process_symptom_item(self, item):
         symptom_collection = self.db[self.db_symptom_collection]
 
-        if not symptom_collection.find({'name': item['name']}).count():
+        if not symptom_collection.find_one({'name': item['name']}):
             symptom = dict(item)
             # symptom['name'] = item['name']
             # symptom['related_diseases'] = item['related_diseases']
@@ -134,7 +134,7 @@ class A120askPipeline(Pipeline):
     def _process_question_item(self, item):
         question_collection = self.db[self.db_question_collection]
 
-        if not question_collection.find({'qid': item['qid']}).count():
+        if not question_collection.find_one({'qid': item['qid']}):
             question = dict(item)
             question_collection.insert(question)
         else:
@@ -153,12 +153,14 @@ class A120askPipeline(Pipeline):
 
     def _process_disease_quesiton_item(self, item):
         question_collection = self.db[self.db_question_collection]
+        print item['qids']
         for qid in item['qids']:
             # print qid, item['symptom_name']
             question_collection.update_one({'qid': qid}, {'$addToSet': {'related_diseases': item['disease_name']}})
 
     def _process_symptom_quesiton_item(self, item):
         question_collection = self.db[self.db_question_collection]
+        print item['qids']
         for qid in item['qids']:
             # print qid, item['symptom_name']
             question_collection.update_one({'qid': qid}, {'$addToSet': {'related_symptoms': item['symptom_name']}})

@@ -7,7 +7,7 @@ from scrapy.http.request import Request
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, SymptomQuestionItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem
 
 
 class MLStripper(HTMLParser):
@@ -100,8 +100,9 @@ class A120askSpider(CrawlSpider):
 
         # Go on parsing questions
         question_url = response.xpath('//div[@class="p_topbox"]/p/span/a[contains(@href, "/list/")]/@href').extract()[0]
-        request = Request(url=question_url, callback=self._parse_disease_question)
+        request = Request(url=question_url, dont_filter=True, callback=self._parse_disease_question)
         request.meta['disease_item'] = disease_item
+        # print request
         yield request
 
         # Go on parsing details
@@ -109,7 +110,7 @@ class A120askSpider(CrawlSpider):
         detail_urls += response.xpath('//ul[@class="p_sibox2ul clears"]/li/a/@href').extract()
         # print detail_urls
         for url in detail_urls:
-            request = Request(url=url, callback=self._parse_disease_detail)
+            request = Request(url=url, dont_filter=True, callback=self._parse_disease_detail)
             request.meta['disease_item'] = disease_item
             yield request
 
@@ -134,8 +135,9 @@ class A120askSpider(CrawlSpider):
             url = next_url[0]
             # print url
             # print disease_question_item['qids']
-            request = Request(url, callback=self._parse_disease_question)
+            request = Request(url, dont_filter=True, callback=self._parse_disease_question)
             request.meta['disease_questions'] = disease_question_item
+            # print request
             yield request
 
     def _parse_disease_detail(self, response):
@@ -167,8 +169,9 @@ class A120askSpider(CrawlSpider):
 
         # Go on parsing questions
         question_url = response.xpath('//div[@class="w_headnav_div"]/a[contains(@href, "/list/")]/@href').extract()[0]
-        request = Request(url=question_url, callback=self._parse_symptom_question)
+        request = Request(url=question_url, dont_filter=True, callback=self._parse_symptom_question)
         request.meta['symptom_item'] = symptom_item
+        # print request
         yield request
 
         # Go on parsing details
@@ -176,12 +179,13 @@ class A120askSpider(CrawlSpider):
         detail_urls += response.xpath('//ul[@class="p_sibox2ul clears"]/li/a[1]/@href').extract()
         # print detail_urls
         for url in detail_urls:
-            request = Request(url=url, callback=self._parse_symptom_detail)
+            request = Request(url=url, dont_filter=True, callback=self._parse_symptom_detail)
             request.meta['symptom_item'] = symptom_item
             yield request
 
     def _parse_symptom_question(self, response):
         symptom_question_item = response.meta.get('symptom_questions')
+        # print response.url
         if not symptom_question_item:
             symptom_question_item = SymptomQuestionItem()
             symptom_question_item['symptom_name'] = response.meta['symptom_item']['name']
@@ -201,14 +205,15 @@ class A120askSpider(CrawlSpider):
             url = next_url[0]
             # print url
             # print symptom_question_item['qids']
-            request = Request(url, callback=self._parse_symptom_question)
+            request = Request(url, dont_filter=True, callback=self._parse_symptom_question)
             request.meta['symptom_questions'] = symptom_question_item
+            # print request
             yield request
 
 
     def _parse_symptom_detail(self, response):
         # http://tag.120ask.com/jibing/bidouyan/bingyin/
-        print response.url
+        # print response.url
         symptom_item = response.meta['symptom_item']
         key = response.url.split('/')[-2]
         field = self._detail_url_map[key]
@@ -295,7 +300,7 @@ class A120askSpider(CrawlSpider):
         # print question_item['requirement']
 
         # print question_item
-        yield question_item
+        return question_item
 
 
 

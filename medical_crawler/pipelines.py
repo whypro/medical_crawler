@@ -138,17 +138,17 @@ class A120askPipeline(Pipeline):
             question = dict(item)
             question_collection.insert(question)
         else:
-            result = question_collection.update_one({'qid': item['qid']}, {'$set': {'answers': item['answers']}})
+            result = question_collection.update({'qid': item['qid']}, {'$set': {'answers': item['answers']}})
             # print 'question', result.matched_count
 
     def _process_disease_detail_item(self, item):
         disease_collection = self.db[self.db_disease_collection]
-        result = disease_collection.update_one({'name': item['disease_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
+        result = disease_collection.update({'name': item['disease_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
         # print 'disease_detail', result.matched_count
 
     def _process_symptom_detail_item(self, item):
         symptom_collection = self.db[self.db_symptom_collection]
-        result = symptom_collection.update_one({'name': item['symptom_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
+        result = symptom_collection.update({'name': item['symptom_name'], item['field']: {'$exists': False}}, {'$set': {item['field']: item['content']}})
         # print 'symptom_detail', result.matched_count
 
     def _process_disease_quesiton_item(self, item):
@@ -156,14 +156,14 @@ class A120askPipeline(Pipeline):
         print item['qids']
         for qid in item['qids']:
             # print qid, item['symptom_name']
-            question_collection.update_one({'qid': qid}, {'$addToSet': {'related_diseases': item['disease_name']}})
+            question_collection.update({'qid': qid}, {'$addToSet': {'related_diseases': item['disease_name']}})
 
     def _process_symptom_quesiton_item(self, item):
         question_collection = self.db[self.db_question_collection]
         print item['qids']
         for qid in item['qids']:
             # print qid, item['symptom_name']
-            question_collection.update_one({'qid': qid}, {'$addToSet': {'related_symptoms': item['symptom_name']}})
+            question_collection.update({'qid': qid}, {'$addToSet': {'related_symptoms': item['symptom_name']}})
 
 
 

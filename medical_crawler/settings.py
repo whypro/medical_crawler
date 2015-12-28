@@ -34,4 +34,4 @@ ITEM_PIPELINES = {
     'medical_crawler.pipelines.A120askPipeline': 300,
 }
 
-DOWNLOAD_DELAY = 0.8
+DOWNLOAD_DELAY = 1

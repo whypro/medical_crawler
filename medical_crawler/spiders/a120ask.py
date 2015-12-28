@@ -35,7 +35,7 @@ class A120askSpider(CrawlSpider):
     rules = (
         Rule(LinkExtractor(allow=(r'/jibing/\w+/$', )), callback='parse_disease', follow=True),
         Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
-        Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
+        # Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
     )
 
     _detail_url_map = {
@@ -89,8 +89,8 @@ class A120askSpider(CrawlSpider):
         disease_item = DiseaseItem()
         disease_item['url'] = response.url
 
-        _name = response.xpath('//span[@class="ti"]')
-        disease_item['name'] = _name.xpath('h1/a/text()').extract()[0]
+        _name = response.xpath('//div[@class="p_lbox1"]/div[@class="p_lboxti"]/h3')
+        disease_item['name'] = _name.xpath('text()').extract()[0]
         _other_name = _name.xpath('var/text()').extract()
         if _other_name:
             begin = _other_name[0].find('：') + 1
@@ -104,13 +104,6 @@ class A120askSpider(CrawlSpider):
         # print disease_item
         yield disease_item
 
-        # Go on parsing questions
-        question_url = response.xpath('//div[@class="p_topbox"]/p/span/a[contains(@href, "/list/")]/@href').extract()[0]
-        request = Request(url=question_url, dont_filter=True, callback=self._parse_disease_question)
-        request.meta['disease_item'] = disease_item
-        # print request
-        yield request
-
         # Go on parsing details
         detail_urls = response.xpath('//div[@class="p_lbox1_ab"]/a/@href').extract()
         detail_urls += response.xpath('//ul[@class="p_sibox2ul clears"]/li/a/@href').extract()
@@ -119,6 +112,13 @@ class A120askSpider(CrawlSpider):
             request = Request(url=url, dont_filter=True, callback=self._parse_disease_detail)
             request.meta['disease_item'] = disease_item
             yield request
+
+        # Go on parsing questions
+        question_url = response.xpath('//div[@class="p_lbox5"]/div[@class="p_lboxti"]/a/@href').extract()[0]
+        request = Request(url=question_url, dont_filter=True, callback=self._parse_disease_question)
+        request.meta['disease_item'] = disease_item
+        # print request
+        yield request
 
     def _parse_disease_question(self, response):
         disease_question_item = response.meta.get('disease_questions')
@@ -152,7 +152,7 @@ class A120askSpider(CrawlSpider):
         disease_item = response.meta['disease_item']
         key = response.url.split('/')[-2]
         field = self._detail_url_map[key]
-        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/div/p').extract())).strip()
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/div[@class="p_arttopab clears"]/following-sibling::div').extract())).strip()
         # print content
         disease_detail_item = DiseaseDetailItem()
         disease_detail_item['disease_name'] = disease_item['name']
@@ -164,7 +164,7 @@ class A120askSpider(CrawlSpider):
         """解析【症状】页面"""
         symptom_item = SymptomItem()
         symptom_item['url'] = response.url
-        symptom_item['name'] = response.xpath('//h3[@class="headtag"]/a/text()').extract()[0]
+        symptom_item['name'] = response.xpath('//div[@id="m_1"]/div[@class="p_sibox1 p_siboxbor"]/div[@class="p_sititile"]/span/h1/text()').extract()[0]
 
         _related = response.xpath('//div[@id="yw3"]/div/div')
         symptom_item['related_diseases'] = _related.xpath('ul/li/a[contains(@href, "/jibing/")]/@title').extract()
@@ -172,13 +172,6 @@ class A120askSpider(CrawlSpider):
         # print symptom_item['related_diseases'], symptom_item['related_symptoms']
         # print symptom_item
         yield symptom_item
-
-        # Go on parsing questions
-        question_url = response.xpath('//div[@class="w_headnav_div"]/a[contains(@href, "/list/")]/@href').extract()[0]
-        request = Request(url=question_url, dont_filter=True, callback=self._parse_symptom_question)
-        request.meta['symptom_item'] = symptom_item
-        # print request
-        yield request
 
         # Go on parsing details
         detail_urls = response.xpath('//dl[@class="p_sibox1dl clears"]/dt/a/@href').extract()
@@ -188,6 +181,13 @@ class A120askSpider(CrawlSpider):
             request = Request(url=url, dont_filter=True, callback=self._parse_symptom_detail)
             request.meta['symptom_item'] = symptom_item
             yield request
+
+        # Go on parsing questions
+        question_url = response.xpath('//div[@class="p_sibox4 p_siboxbor"]/div[@class="p_sititile"]/a/@href').extract()[0]
+        request = Request(url=question_url, dont_filter=True, callback=self._parse_symptom_question)
+        request.meta['symptom_item'] = symptom_item
+        # print request
+        yield request
 
     def _parse_symptom_question(self, response):
         symptom_question_item = response.meta.get('symptom_questions')
@@ -223,7 +223,7 @@ class A120askSpider(CrawlSpider):
         symptom_item = response.meta['symptom_item']
         key = response.url.split('/')[-2]
         field = self._detail_url_map[key]
-        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/p').extract())).strip()
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/div[@class="p_arttopab clears"]/following-sibling::div').extract())).strip()
         # print content
         symptom_detail_item = SymptomDetailItem()
         symptom_detail_item['symptom_name'] = symptom_item['name']

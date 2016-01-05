@@ -33,8 +33,8 @@ class A120askSpider(CrawlSpider):
     start_urls = ('http://www.120ask.com/', )
 
     rules = (
-        Rule(LinkExtractor(allow=(r'/jibing/\w+/$', )), callback='parse_disease', follow=True),
-        Rule(LinkExtractor(allow=(r'/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
+        Rule(LinkExtractor(allow=(r'tag\.120ask\.com/jibing/\w+/$', )), callback='parse_disease', follow=True),
+        Rule(LinkExtractor(allow=(r'tag\.120ask\.com/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
         # Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
     )
 
@@ -152,8 +152,11 @@ class A120askSpider(CrawlSpider):
         disease_item = response.meta['disease_item']
         key = response.url.split('/')[-2]
         field = self._detail_url_map[key]
-        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/div[@class="p_arttopab clears"]/following-sibling::div').extract())).strip()
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/div[@class="p_arttopab clears"]/following-sibling::*').extract())).strip()
         # print content
+        if not content:
+            self.logger.error('Empty disease detail content, url: {0}, response status: {1}'.format(response.url, response.status))
+            return None
         disease_detail_item = DiseaseDetailItem()
         disease_detail_item['disease_name'] = disease_item['name']
         disease_detail_item['field'] = field
@@ -223,8 +226,11 @@ class A120askSpider(CrawlSpider):
         symptom_item = response.meta['symptom_item']
         key = response.url.split('/')[-2]
         field = self._detail_url_map[key]
-        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/div[@class="p_arttopab clears"]/following-sibling::div').extract())).strip()
+        content = strip_tags('\n'.join(response.xpath('//div[@class="p_cleftartbox"]/div[@class="p_arttopab clears"]/following-sibling::*').extract())).strip()
         # print content
+        if not content:
+            self.logger.error('Empty symptom detail content, url: {0}, response status: {1}'.format(response.url, response.status))
+            return None
         symptom_detail_item = SymptomDetailItem()
         symptom_detail_item['symptom_name'] = symptom_item['name']
         symptom_detail_item['field'] = field

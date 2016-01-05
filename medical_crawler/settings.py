@@ -9,7 +9,6 @@
 #
 
 BOT_NAME = 'medical_crawler'
-LOG_LEVEL = 'ERROR'
 
 SPIDER_MODULES = ['medical_crawler.spiders']
 NEWSPIDER_MODULE = 'medical_crawler.spiders'
@@ -35,3 +34,7 @@ ITEM_PIPELINES = {
 }
 
 DOWNLOAD_DELAY = 1
+
+LOG_ENABLED = True
+LOG_FILE = './120ask.log'
+LOG_LEVEL = 'ERROR'

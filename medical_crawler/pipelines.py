@@ -5,7 +5,7 @@ import requests
 import os
 
 from medical_crawler.database import mongo_connect, mongo_close
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem, ExaminationItem
 
 class Pipeline(object):
 
@@ -66,6 +66,7 @@ class A120askPipeline(Pipeline):
     db_disease_collection = 'disease'
     db_symptom_collection = 'symptom'
     db_question_collection = 'question'
+    db_examination_collection = 'examination'
 
     def process_item(self, item, spider):
 
@@ -88,6 +89,8 @@ class A120askPipeline(Pipeline):
             self._process_disease_quesiton_item(item)
         elif isinstance(item, SymptomQuestionItem):
             self._process_symptom_quesiton_item(item)
+        elif isinstance(item, ExaminationItem):
+            self._process_examination_item(item)
 
         return item
 
@@ -164,6 +167,14 @@ class A120askPipeline(Pipeline):
         for qid in item['qids']:
             # print qid, item['symptom_name']
             question_collection.update({'qid': qid}, {'$addToSet': {'related_symptoms': item['symptom_name']}})
+
+    def _process_examination_item(self, item):
+        examination_collection = self.db[self.db_examination_collection]
+        if not examination_collection.find_one({'name': item['name']}):
+            examination = dict(item)
+            examination_collection.insert(examination)
+        else:
+            pass
 
 
 

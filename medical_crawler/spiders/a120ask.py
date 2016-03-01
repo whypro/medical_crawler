@@ -8,7 +8,7 @@ from scrapy.http.request import Request
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 
-from ..items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem
+from ..items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem, ExaminationItem
 
 
 class MLStripper(HTMLParser):
@@ -30,12 +30,20 @@ def strip_tags(html):
 class A120askSpider(CrawlSpider):
     name = "120ask"
     allowed_domains = ["120ask.com"]
-    start_urls = ('http://www.120ask.com/', )
+    start_urls = (
+        'http://www.120ask.com/', 
+        'http://tag.120ask.com/jibing/', 'http://tag.120ask.com/zhengzhuang/', 
+        'http://tag.120ask.com/jiancha/', 'http://tag.120ask.com/shoushu/'
+        'http://yp.120ask.com/',
+    )
 
     rules = (
-        Rule(LinkExtractor(allow=(r'tag\.120ask\.com/jibing/\w+/$', )), callback='parse_disease', follow=True),
-        Rule(LinkExtractor(allow=(r'tag\.120ask\.com/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
+        ##Rule(LinkExtractor(allow=(r'tag\.120ask\.com/jibing/\w+/$', )), callback='parse_disease', follow=True),
+        ##Rule(LinkExtractor(allow=(r'tag\.120ask\.com/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
         # Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
+        # Rule(LinkExtractor(allow=(r'tag\.120ask\.com/shoushu/\w+\.html$', )), callback='parse_surgery', follow=True),
+        Rule(LinkExtractor(allow=(r'tag\.120ask\.com/jiancha/\d+$', )), callback='parse_examination', follow=True),
+        # Rule(LinkExtractor(allow=(r'yp\.120ask\.com/detail/\d+\.html$', )), callback='parse_medication', follow=True),
     )
 
     _detail_url_map = {
@@ -333,3 +341,17 @@ class A120askSpider(CrawlSpider):
 
         # print question_item
         return question_item
+
+    def parse_examination(self, response):
+        """解析【检查】页面"""
+        examination_item = ExaminationItem()
+        examination_item['url'] = response.url
+        examination_item['name'] = response.xpath('//div[@class="w_cl1"]/h1[@class="h1 clears"]/@title').extract()[0]
+        examination_item['introduction'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[1]/h3/following-sibling::*').extract()))
+        examination_item['normal_value'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[2]/h3/following-sibling::*').extract()))
+        examination_item['clinical_significance'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[3]/h3/following-sibling::*').extract()))
+        examination_item['precautions'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[4]/h3/following-sibling::*').extract()))
+        examination_item['process'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[5]/h3/following-sibling::*').extract()))
+        examination_item['cost'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[6]/h3/following-sibling::*').extract()))
+        print examination_item
+        yield examination_item

@@ -97,8 +97,48 @@ class AnswerItem(Item):
     date = Field()              # 时间
 
 
-class MedicineItem(Item):
-    pass
+class MedicationItem(Item):
+    url = Field()               # URL
+    generic_name = Field()      # 名称
+    trade_name = Field()        # 商用名称
+    form = Field()              # 剂型
+    description = Field()       # 性状
+    ingredient = Field()        # 主要成份
+    indications = Field()       # 适应症
+    adverse_reactions = Field() # 不良反应
+    dosage = Field()            # 用法用量
+    contraindications = Field() # 禁忌
+    precautions = Field()       # 注意事项
+    pregnant_lactating_usage = Field() # 孕妇及哺乳期妇女用药
+    children_usage = Field()    # 儿童用药
+    the_old_usage = Field()     # 老人用药
+    interactions = Field()      # 药物相互作用
+    actions = Field()           # 药理毒理
+    pharmacokinetics = Field()  # 药代动力学
+    preserving = Field()        # 贮藏
+    term_of_validity = Field()  # 有效期
 
-class HospitalItem(Item):
-    pass
+
+class ExaminationItem(Item):
+    url = Field()               # URL
+    name = Field()              # 名称
+    introduction = Field()      # 介绍
+    normal_value = Field()      # 正常值
+    clinical_significance = Field() # 临床意义
+    precautions = Field()       # 注意事项
+    process = Field()           # 检查过程
+    cost = Field()              # 一般费用
+
+
+class SurgeryItem(Item):
+    url = Field()               # URL
+    name = Field()              # 名称
+    summary = Field()           # 概述
+    symptom = Field()           # 适应症
+    complication = Field()      # 并发症
+    contraindications = Field() # 禁忌
+    process = Field()           # 步骤
+    before = Field()            # 术前准备
+    after = Field()             # 术后护理
+    precautions = Field()       # 注意事项
+

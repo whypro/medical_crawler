@@ -5,7 +5,9 @@ import requests
 import os
 
 from medical_crawler.database import mongo_connect, mongo_close
-from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem, ExaminationItem
+from medical_crawler.items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem
+from medical_crawler.items import ExaminationItem, MedicationItem, SurgeryItem
+
 
 class Pipeline(object):
 
@@ -67,6 +69,8 @@ class A120askPipeline(Pipeline):
     db_symptom_collection = 'symptom'
     db_question_collection = 'question'
     db_examination_collection = 'examination'
+    db_medication_collection = 'medication'
+    db_surgery_collection = 'surgery'
 
     def process_item(self, item, spider):
 
@@ -91,6 +95,10 @@ class A120askPipeline(Pipeline):
             self._process_symptom_quesiton_item(item)
         elif isinstance(item, ExaminationItem):
             self._process_examination_item(item)
+        elif isinstance(item, MedicationItem):
+            self._process_medication_item(item)
+        elif isinstance(item, SurgeryItem):
+            self._process_surgery_item(item)
 
         return item
 
@@ -176,8 +184,18 @@ class A120askPipeline(Pipeline):
         else:
             pass
 
+    def _process_medication_item(self, item):
+        medication_collection = self.db[self.db_medication_collection]
+        if not medication_collection.find_one({'generic_name': item['generic_name']}):
+            medication = dict(item)
+            medication_collection.insert(medication)
+        else:
+            pass
 
-
-
-
-
+    def _process_surgery_item(self, item):
+        surgery_collection = self.db[self.db_surgery_collection]
+        if not surgery_collection.find_one({'name': item['name']}):
+            surgery = dict(item)
+            surgery_collection.insert(surgery)
+        else:
+            pass

@@ -99,23 +99,19 @@ class AnswerItem(Item):
 
 class MedicationItem(Item):
     url = Field()               # URL
-    generic_name = Field()      # 名称
+    generic_name = Field()      # 通用名称
     trade_name = Field()        # 商用名称
-    form = Field()              # 剂型
-    description = Field()       # 性状
     ingredient = Field()        # 主要成份
+    description = Field()       # 性状
     indications = Field()       # 适应症
-    adverse_reactions = Field() # 不良反应
+    disease = Field()           # 主治疾病
+    specification = Field()     # 规格
     dosage = Field()            # 用法用量
+    adverse_reactions = Field() # 不良反应
     contraindications = Field() # 禁忌
     precautions = Field()       # 注意事项
-    pregnant_lactating_usage = Field() # 孕妇及哺乳期妇女用药
-    children_usage = Field()    # 儿童用药
-    the_old_usage = Field()     # 老人用药
     interactions = Field()      # 药物相互作用
-    actions = Field()           # 药理毒理
-    pharmacokinetics = Field()  # 药代动力学
-    preserving = Field()        # 贮藏
+    preservation = Field()      # 贮藏
     term_of_validity = Field()  # 有效期
 
 
@@ -141,4 +137,5 @@ class SurgeryItem(Item):
     before = Field()            # 术前准备
     after = Field()             # 术后护理
     precautions = Field()       # 注意事项
+    cost = Field()              # 报价
 

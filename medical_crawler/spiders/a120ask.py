@@ -8,8 +8,8 @@ from scrapy.http.request import Request
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 
-from ..items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem, ExaminationItem
-
+from ..items import DepartmentItem, DiseaseItem, SymptomItem, QuestionItem, DiseaseDetailItem, SymptomDetailItem, DiseaseQuestionItem, SymptomQuestionItem
+from ..items import ExaminationItem, MedicationItem, SurgeryItem
 
 class MLStripper(HTMLParser):
     def __init__(self):
@@ -33,7 +33,7 @@ class A120askSpider(CrawlSpider):
     start_urls = (
         'http://www.120ask.com/', 
         'http://tag.120ask.com/jibing/', 'http://tag.120ask.com/zhengzhuang/', 
-        'http://tag.120ask.com/jiancha/', 'http://tag.120ask.com/shoushu/'
+        'http://tag.120ask.com/jiancha/', 'http://tag.120ask.com/shoushu/',
         'http://yp.120ask.com/',
     )
 
@@ -41,8 +41,8 @@ class A120askSpider(CrawlSpider):
         ##Rule(LinkExtractor(allow=(r'tag\.120ask\.com/jibing/\w+/$', )), callback='parse_disease', follow=True),
         ##Rule(LinkExtractor(allow=(r'tag\.120ask\.com/zhengzhuang/\w+/$', )), callback='parse_symptom', follow=True),
         # Rule(LinkExtractor(allow=(r'/question/\d+\.htm$', )), callback='parse_question', follow=True),
-        # Rule(LinkExtractor(allow=(r'tag\.120ask\.com/shoushu/\w+\.html$', )), callback='parse_surgery', follow=True),
-        Rule(LinkExtractor(allow=(r'tag\.120ask\.com/jiancha/\d+$', )), callback='parse_examination', follow=True),
+        Rule(LinkExtractor(allow=(r'/shoushu/\d+\.html$', )), callback='parse_surgery', follow=True),
+        # Rule(LinkExtractor(allow=(r'tag\.120ask\.com/jiancha/\d+$', )), callback='parse_examination', follow=True),
         # Rule(LinkExtractor(allow=(r'yp\.120ask\.com/detail/\d+\.html$', )), callback='parse_medication', follow=True),
     )
 
@@ -57,6 +57,17 @@ class A120askSpider(CrawlSpider):
         'zhiliao': 'treat',
         'yinshi': 'diet',
         'huanjie': 'relief',
+    }
+
+    _surgery_detail_url_map = {
+        'shiying': 'symptom',
+        'bingfa': 'complication',
+        'jinji': 'contraindications',
+        'buzhou': 'process',
+        'zhunbei': 'before',
+        'huli': 'after',
+        'zhuyi': 'precautions',
+        'baojia': 'cost',
     }
 
     def __init__(self):
@@ -347,11 +358,93 @@ class A120askSpider(CrawlSpider):
         examination_item = ExaminationItem()
         examination_item['url'] = response.url
         examination_item['name'] = response.xpath('//div[@class="w_cl1"]/h1[@class="h1 clears"]/@title').extract()[0]
-        examination_item['introduction'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[1]/h3/following-sibling::*').extract()))
-        examination_item['normal_value'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[2]/h3/following-sibling::*').extract()))
-        examination_item['clinical_significance'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[3]/h3/following-sibling::*').extract()))
-        examination_item['precautions'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[4]/h3/following-sibling::*').extract()))
-        examination_item['process'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[5]/h3/following-sibling::*').extract()))
-        examination_item['cost'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[6]/h3/following-sibling::*').extract()))
+        examination_item['introduction'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[1]/h3/following-sibling::*').extract())).strip()
+        examination_item['normal_value'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[2]/h3/following-sibling::*').extract())).strip()
+        examination_item['clinical_significance'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[3]/h3/following-sibling::*').extract())).strip()
+        examination_item['precautions'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[4]/h3/following-sibling::*').extract())).strip()
+        examination_item['process'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[5]/h3/following-sibling::*').extract())).strip()
+        examination_item['cost'] = strip_tags('\n'.join(response.xpath('//div[@class="w_cl1"]/div[@class="w_cll"]/div[6]/h3/following-sibling::*').extract())).strip()
         print examination_item
         yield examination_item
+
+    def parse_medication(self, response):
+        """解析【药物】页面"""
+        medication_item =  MedicationItem()
+        medication_item['url'] = response.url
+
+        _introduction = response.xpath('//div[@class="drugDecri"]/div[@class="box"]')
+        _generic_name = _introduction.xpath('p[1]/var/i[1]/text()').extract()
+        if _generic_name:
+            medication_item['generic_name'] = _generic_name[0]
+        _trade_name = _introduction.xpath('p[1]/var/i[2]/text()').extract()
+        if _trade_name:
+            medication_item['trade_name'] = _trade_name[0]
+        _ingredient = _introduction.xpath('p[2]/var/text()').extract()
+        if _ingredient:
+            medication_item['ingredient'] = _ingredient[0]
+        _description = _introduction.xpath('p[3]/var/text()').extract()
+        if _description:
+            medication_item['description'] = _description[0]
+        _indications = _introduction.xpath('p[4]/var/text()').extract()
+        if _indications:
+            medication_item['indications'] = _indications[0]
+        _disease = _introduction.xpath('p[5]/var/text()').extract()
+        if _disease:
+            medication_item['disease'] = _disease[0]
+        _specification = _introduction.xpath('p[6]/var/text()').extract()
+        if _specification:
+            medication_item['specification'] = _specification[0]
+        _dosage = _introduction.xpath('p[7]/var/text()').extract()
+        if _dosage:
+            medication_item['dosage'] = _dosage[0]
+        _adverse_reactions = _introduction.xpath('p[8]/var/text()').extract()
+        if _adverse_reactions:
+            medication_item['adverse_reactions'] = _adverse_reactions[0]
+        _contraindications = _introduction.xpath('p[9]/var/text()').extract()
+        if _contraindications:
+            medication_item['contraindications'] = _contraindications[0]
+        _precautions = _introduction.xpath('p[10]/var/text()').extract()
+        if _precautions:
+            medication_item['precautions'] = _precautions[0]
+        _interactions = _introduction.xpath('p[11]/var/text()').extract()
+        if _interactions:
+            medication_item['interactions'] = _interactions[0]
+        _preservation = _introduction.xpath('p[12]/var/text()').extract()
+        if _preservation:
+            medication_item['preservation'] = _preservation[0]
+        _term_of_validity = _introduction.xpath('p[13]/var/text()').extract()
+        if _term_of_validity:
+            medication_item['term_of_validity'] = _term_of_validity[0]
+        
+        yield medication_item
+
+    def parse_surgery(self, response):
+        print response.url
+        surgery_item = SurgeryItem()
+        surgery_item['url'] = response.url
+        surgery_item['name'] = response.xpath('//div[@class="w_n"]/h3/text()').extract()[0]
+        surgery_item['summary'] = response.xpath('//dd[@class="w_d3"]/text()').extract()[0]
+
+        # Go on parsing details
+        _next = response.xpath('//div[@class="w_n"]/div[@class="w_na clears"]/a[@class="hover"]/following-sibling::a[not(@class="w_la")][1]/@href').extract()
+        next_detail_url = urljoin(response.url, _next[0])
+        request = Request(url=next_detail_url, dont_filter=True, callback=self._parse_surgery_detail)
+        request.meta['surgery_item'] = surgery_item
+        yield request
+
+    def _parse_surgery_detail(self, response):
+        print response.url
+        surgery_item = response.meta['surgery_item']
+        key = response.url.split('/')[-1].split('.')[0]
+        field = self._surgery_detail_url_map[key]
+        print surgery_item['name'], key, field
+        surgery_item[field] = strip_tags('\n'.join(response.xpath('//div[@class="w_contl fl"]/h3/following-sibling::*').extract())).strip()
+
+        _next = response.xpath('//div[@class="w_n"]/div[@class="w_na clears"]/a[@class="hover"]/following-sibling::a[not(@class="w_la")][1]/@href').extract()
+        if _next:
+            next_detail_url = urljoin(response.url, _next[0])
+            request = Request(url=next_detail_url, dont_filter=True, callback=self._parse_surgery_detail)
+            request.meta['surgery_item'] = surgery_item
+            yield request
+        else:
+            yield surgery_item
